@@ -1,0 +1,14 @@
+@GifCampAPI_HostAddress = http://localhost:5255
+
+### Login
+POST {{GifCampAPI_HostAddress}}/login
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "picture": "https://example.com/picture.jpg",
+  "method": "google"
+}
+
+###
