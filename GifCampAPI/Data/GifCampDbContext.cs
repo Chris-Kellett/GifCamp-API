@@ -11,6 +11,7 @@ public class GifCampDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<Category> Categories { get; set; }
+    public DbSet<Image> Images { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +39,23 @@ public class GifCampDbContext : DbContext
             entity.Property(e => e.UserId).IsRequired();
             entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
             entity.Property(e => e.CreatedAt).IsRequired();
+            
+            // Foreign key relationship to Users
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Image>(entity =>
+        {
+            entity.ToTable("Images");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.CategoryId).IsRequired();
+            entity.Property(e => e.ImageUrl).HasMaxLength(2000);
+            entity.Property(e => e.StorageUrl).HasMaxLength(500);
             
             // Foreign key relationship to Users
             entity.HasOne<User>()

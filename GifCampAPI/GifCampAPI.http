@@ -44,3 +44,47 @@ Content-Type: application/json
 }
 
 ###
+
+### Image Add Link
+POST {{GifCampAPI_HostAddress}}/images-add-link
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "categoryId": 1,
+  "imageUrl": "https://example.com/image.jpg"
+}
+
+###
+
+### Image Add Blob
+POST {{GifCampAPI_HostAddress}}/images-add-blob
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="userId"
+
+1
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="categoryId"
+
+1
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="image.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Image Get
+POST {{GifCampAPI_HostAddress}}/images-get
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "categoryId": -1
+}
+
+###

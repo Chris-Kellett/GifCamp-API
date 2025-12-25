@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GifCampAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+049eb9a2cfa886326b3af8909696c921be05bc15")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+004e967fa918a1a87124269bd1f2ea8b254e5490")]
 [assembly: System.Reflection.AssemblyProductAttribute("GifCampAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GifCampAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
