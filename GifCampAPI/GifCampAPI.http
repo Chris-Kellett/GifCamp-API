@@ -33,3 +33,14 @@ Content-Type: application/json
 }
 
 ###
+
+### Category Delete
+POST {{GifCampAPI_HostAddress}}/category-delete
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "categoryId": 1
+}
+
+###
