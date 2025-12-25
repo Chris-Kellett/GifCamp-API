@@ -12,3 +12,24 @@ Content-Type: application/json
 }
 
 ###
+
+### Category Add
+POST {{GifCampAPI_HostAddress}}/category-add
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "name": "My Category"
+}
+
+###
+
+### Category All
+POST {{GifCampAPI_HostAddress}}/category-all
+Content-Type: application/json
+
+{
+  "userId": 1
+}
+
+###

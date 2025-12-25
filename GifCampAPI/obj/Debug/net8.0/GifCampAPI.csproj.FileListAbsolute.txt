@@ -104,3 +104,4 @@
 /Users/chris/Coding/GifCamp/GifCamp-API/GifCampAPI/bin/Debug/net8.0/appsettings.Production.json
 /Users/chris/Coding/GifCamp/GifCamp-API/GifCampAPI/bin/Debug/net8.0/Npgsql.dll
 /Users/chris/Coding/GifCamp/GifCamp-API/GifCampAPI/bin/Debug/net8.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll
+/Users/chris/Coding/GifCamp/GifCamp-API/GifCampAPI/obj/Debug/net8.0/GifCampAPI.sourcelink.json

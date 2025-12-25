@@ -104,3 +104,4 @@ If you need to run migrations on DigitalOcean:
 
 Alternatively, you can run migrations automatically on app startup by adding migration code to `Program.cs` (not recommended for high-availability scenarios).
 
+

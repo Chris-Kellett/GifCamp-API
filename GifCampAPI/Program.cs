@@ -45,7 +45,12 @@ app.MapPost("/login", async (LoginRequest request, GifCampDbContext dbContext, I
     {
         logger.LogWarning("Login request validation failed. Email or Method is missing. Email: {Email}, Method: {Method}", 
             request.Email ?? "null", request.Method ?? "null");
-        return Results.BadRequest(new { message = "Email and Method are required" });
+        return Results.Ok(new LoginResponse
+        {
+            Error = true,
+            Description = "Email and Method are required",
+            User = null
+        });
     }
 
     logger.LogDebug("Searching for existing user with Email: {Email} and Method: {Method}", 
@@ -103,13 +108,177 @@ app.MapPost("/login", async (LoginRequest request, GifCampDbContext dbContext, I
     {
         logger.LogError(ex, "Error saving user to database. Email: {Email}, Method: {Method}", 
             request.Email, request.Method);
-        return Results.Problem("An error occurred while processing your login request.");
+        return Results.Ok(new LoginResponse
+        {
+            Error = true,
+            Description = "An error occurred while processing your login request.",
+            User = null
+        });
     }
 
     logger.LogInformation("Login handler completed successfully. Returning user data. UserId: {UserId}", existingUser.Id);
-    return Results.Ok(existingUser);
+    return Results.Ok(new LoginResponse
+    {
+        Error = false,
+        Description = "",
+        User = existingUser
+    });
 })
 .WithName("Login")
+.WithOpenApi();
+
+// Category-add endpoint
+app.MapPost("/category-add", async (CategoryAddRequest request, GifCampDbContext dbContext, ILogger<Program> logger) =>
+{
+    logger.LogInformation("Category-add handler reached. UserId: {UserId}, Name: {Name}", 
+        request.UserId, request.Name);
+
+    // Validate request
+    if (request.UserId <= 0)
+    {
+        logger.LogWarning("Category-add request validation failed. Invalid UserId: {UserId}", request.UserId);
+        return Results.Ok(new CategoryAddResponse
+        {
+            Error = true,
+            Description = "Valid UserId is required",
+            CategoryId = null
+        });
+    }
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+    {
+        logger.LogWarning("Category-add request validation failed. Name is missing. UserId: {UserId}", request.UserId);
+        return Results.Ok(new CategoryAddResponse
+        {
+            Error = true,
+            Description = "Name is required",
+            CategoryId = null
+        });
+    }
+
+    // Verify user exists
+    logger.LogDebug("Verifying user exists. UserId: {UserId}", request.UserId);
+    var userExists = await dbContext.Users.AnyAsync(u => u.Id == request.UserId);
+    if (!userExists)
+    {
+        logger.LogWarning("Category-add request failed. User not found. UserId: {UserId}", request.UserId);
+        return Results.Ok(new CategoryAddResponse
+        {
+            Error = true,
+            Description = "User not found",
+            CategoryId = null
+        });
+    }
+
+    logger.LogDebug("Creating new category. UserId: {UserId}, Name: {Name}", request.UserId, request.Name);
+
+    try
+    {
+        var now = DateTime.UtcNow;
+        var newCategory = new Category
+        {
+            UserId = request.UserId,
+            Name = request.Name.Trim(),
+            CreatedAt = now
+        };
+
+        dbContext.Categories.Add(newCategory);
+        logger.LogDebug("Category added to context. Saving changes to database...");
+        
+        await dbContext.SaveChangesAsync();
+        
+        logger.LogInformation("Category created successfully. CategoryId: {CategoryId}, UserId: {UserId}, Name: {Name}", 
+            newCategory.Id, newCategory.UserId, newCategory.Name);
+
+        return Results.Ok(new CategoryAddResponse
+        {
+            Error = false,
+            Description = "",
+            CategoryId = newCategory.Id
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error creating category. UserId: {UserId}, Name: {Name}", 
+            request.UserId, request.Name);
+        return Results.Ok(new CategoryAddResponse
+        {
+            Error = true,
+            Description = "An error occurred while creating the category.",
+            CategoryId = null
+        });
+    }
+})
+.WithName("CategoryAdd")
+.WithOpenApi();
+
+// Category-all endpoint
+app.MapPost("/category-all", async (CategoriesAllRequest request, GifCampDbContext dbContext, ILogger<Program> logger) =>
+{
+    logger.LogInformation("Category-all handler reached. UserId: {UserId}", request.UserId);
+
+    // Validate request
+    if (request.UserId <= 0)
+    {
+        logger.LogWarning("Category-all request validation failed. Invalid UserId: {UserId}", request.UserId);
+        return Results.Ok(new CategoriesAllResponse
+        {
+            Error = true,
+            Description = "Valid UserId is required",
+            Categories = new List<CategoryItem>()
+        });
+    }
+
+    logger.LogDebug("Fetching categories for UserId: {UserId}", request.UserId);
+
+    try
+    {
+        // Verify user exists
+        var userExists = await dbContext.Users.AnyAsync(u => u.Id == request.UserId);
+        if (!userExists)
+        {
+            logger.LogWarning("Category-all request failed. User not found. UserId: {UserId}", request.UserId);
+            return Results.Ok(new CategoriesAllResponse
+            {
+                Error = true,
+                Description = "User not found",
+                Categories = new List<CategoryItem>()
+            });
+        }
+
+        // Fetch all categories for the user
+        var categories = await dbContext.Categories
+            .Where(c => c.UserId == request.UserId)
+            .OrderBy(c => c.Name)
+            .Select(c => new CategoryItem
+            {
+                Id = c.Id,
+                Name = c.Name
+            })
+            .ToListAsync();
+
+        logger.LogInformation("Categories retrieved successfully. UserId: {UserId}, Count: {Count}", 
+            request.UserId, categories.Count);
+
+        return Results.Ok(new CategoriesAllResponse
+        {
+            Error = false,
+            Description = "",
+            Categories = categories
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error fetching categories. UserId: {UserId}", request.UserId);
+        return Results.Ok(new CategoriesAllResponse
+        {
+            Error = true,
+            Description = "An error occurred while fetching categories.",
+            Categories = new List<CategoryItem>()
+        });
+    }
+})
+.WithName("CategoryAll")
 .WithOpenApi();
 
 app.Run();
