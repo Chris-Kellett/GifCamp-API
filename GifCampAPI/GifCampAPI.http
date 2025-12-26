@@ -88,3 +88,14 @@ Content-Type: application/json
 }
 
 ###
+
+### Image Delete
+POST {{GifCampAPI_HostAddress}}/images-delete
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "imageId": 1
+}
+
+###

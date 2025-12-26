@@ -352,14 +352,38 @@ public static class ImageHandlers
                     request.CategoryId, request.UserId);
             }
 
-            var images = await query.ToListAsync();
-            
+            var images = await query
+                .Select(i => new
+                {
+                    ImageId = i.Id,
+                    ImageUrl = i.ImageUrl,
+                    StorageUrl = i.StorageUrl,
+                    CategoryId = i.CategoryId
+                })
+                .ToListAsync();
+
+            // Get unique category IDs (excluding 0)
+            var categoryIds = images
+                .Where(i => i.CategoryId > 0)
+                .Select(i => i.CategoryId)
+                .Distinct()
+                .ToList();
+
+            // Fetch category names
+            var categories = await dbContext.Categories
+                .Where(c => categoryIds.Contains(c.Id) && c.UserId == request.UserId)
+                .ToDictionaryAsync(c => c.Id, c => c.Name);
+
             var imageItems = images.Select(i => new ImageItem
             {
-                Id = i.Id,
+                Id = i.ImageId,
                 Url = !string.IsNullOrWhiteSpace(i.StorageUrl) 
                     ? storageService.GetPublicUrl(i.StorageUrl) 
-                    : (i.ImageUrl ?? string.Empty)
+                    : (i.ImageUrl ?? string.Empty),
+                CategoryId = i.CategoryId,
+                CategoryName = i.CategoryId == 0 
+                    ? "Uncategorised" 
+                    : (categories.TryGetValue(i.CategoryId, out var name) ? name : "Uncategorised")
             }).ToList();
 
             logger.LogInformation("Images retrieved successfully. UserId: {UserId}, CategoryId: {CategoryId}, Count: {Count}", 
@@ -381,6 +405,95 @@ public static class ImageHandlers
                 Error = true,
                 Description = "An error occurred while fetching images.",
                 Images = new List<ImageItem>()
+            });
+        }
+    }
+
+    // Images-delete handler
+    public static async Task<IResult> HandleDelete(ImageDeleteRequest request, GifCampDbContext dbContext, ILogger logger)
+    {
+        logger.LogInformation("Images-delete handler reached. UserId: {UserId}, ImageId: {ImageId}", 
+            request.UserId, request.ImageId);
+
+        // Validate request
+        if (request.UserId <= 0)
+        {
+            logger.LogWarning("Images-delete request validation failed. Invalid UserId: {UserId}", request.UserId);
+            return Results.Ok(new ImageDeleteResponse
+            {
+                Error = true,
+                Description = "Valid UserId is required"
+            });
+        }
+
+        if (request.ImageId <= 0)
+        {
+            logger.LogWarning("Images-delete request validation failed. Invalid ImageId: {ImageId}", request.ImageId);
+            return Results.Ok(new ImageDeleteResponse
+            {
+                Error = true,
+                Description = "Valid ImageId is required"
+            });
+        }
+
+        logger.LogDebug("Verifying user exists. UserId: {UserId}", request.UserId);
+
+        try
+        {
+            // Verify user exists
+            var userExists = await ValidateUserIdAsync(request.UserId, dbContext);
+            if (!userExists)
+            {
+                logger.LogWarning("Images-delete request failed. User not found. UserId: {UserId}", request.UserId);
+                return Results.Ok(new ImageDeleteResponse
+                {
+                    Error = true,
+                    Description = "User not found"
+                });
+            }
+
+            logger.LogDebug("Verifying image exists and matches UserId. ImageId: {ImageId}, UserId: {UserId}", 
+                request.ImageId, request.UserId);
+
+            // Verify image exists and matches userId
+            var image = await dbContext.Images
+                .FirstOrDefaultAsync(i => i.Id == request.ImageId && i.UserId == request.UserId);
+
+            if (image == null)
+            {
+                logger.LogWarning("Images-delete request failed. Image not found or does not match UserId. ImageId: {ImageId}, UserId: {UserId}", 
+                    request.ImageId, request.UserId);
+                return Results.Ok(new ImageDeleteResponse
+                {
+                    Error = true,
+                    Description = "Image not found or you do not have permission to delete it"
+                });
+            }
+
+            logger.LogInformation("Image found and verified. Deleting image. ImageId: {ImageId}, UserId: {UserId}", 
+                image.Id, image.UserId);
+
+            // Delete the image
+            dbContext.Images.Remove(image);
+            await dbContext.SaveChangesAsync();
+
+            logger.LogInformation("Image deleted successfully. ImageId: {ImageId}, UserId: {UserId}", 
+                request.ImageId, request.UserId);
+
+            return Results.Ok(new ImageDeleteResponse
+            {
+                Error = false,
+                Description = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting image. ImageId: {ImageId}, UserId: {UserId}", 
+                request.ImageId, request.UserId);
+            return Results.Ok(new ImageDeleteResponse
+            {
+                Error = true,
+                Description = "An error occurred while deleting the image."
             });
         }
     }

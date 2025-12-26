@@ -4,6 +4,7 @@ using GifCampAPI.Models;
 using GifCampAPI.Handlers;
 using GifCampAPI.Services;
 using DotNetEnv;
+using Microsoft.Extensions.FileProviders;
 
 // Load .env file if it exists
 try
@@ -29,6 +30,9 @@ var storageConfig = new StorageConfiguration
         ?? builder.Configuration["Storage:Provider"] 
         ?? (builder.Environment.IsDevelopment() ? "local" : "local"),
     
+    BaseUrl = Environment.GetEnvironmentVariable("BASE_URL")
+        ?? builder.Configuration["Storage:BaseUrl"],
+    
     DigitalOceanSpacesEndpoint = Environment.GetEnvironmentVariable("DO_SPACES_ENDPOINT")
         ?? builder.Configuration["Storage:DigitalOcean:Endpoint"],
     
@@ -49,6 +53,7 @@ var storageConfig = new StorageConfiguration
 };
 
 builder.Services.AddSingleton(storageConfig);
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ImageStorageService>();
 
 // Add DbContext
@@ -76,6 +81,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Enable static files from Content directory
+var contentPath = Path.Combine(app.Environment.ContentRootPath, "Content");
+Directory.CreateDirectory(contentPath); // Ensure directory exists
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(contentPath),
+    RequestPath = "/Content"
+});
 
 // Login endpoint
 app.MapPost("/login", async (LoginRequest request, GifCampDbContext dbContext, ILogger<Program> logger) =>
@@ -117,6 +132,12 @@ app.MapPost("/images-add-blob", async (HttpRequest httpRequest, GifCampDbContext
 app.MapPost("/images-get", async (ImageGetRequest request, GifCampDbContext dbContext, ILogger<Program> logger, ImageStorageService storageService) =>
     await ImageHandlers.HandleGet(request, dbContext, logger, storageService))
     .WithName("ImageGet")
+    .WithOpenApi();
+
+// Images-delete endpoint
+app.MapPost("/images-delete", async (ImageDeleteRequest request, GifCampDbContext dbContext, ILogger<Program> logger) =>
+    await ImageHandlers.HandleDelete(request, dbContext, logger))
+    .WithName("ImageDelete")
     .WithOpenApi();
 
 app.Run();

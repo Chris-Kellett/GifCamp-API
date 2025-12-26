@@ -1,6 +1,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using GifCampAPI.Services;
+using Microsoft.AspNetCore.Http;
 
 namespace GifCampAPI.Services;
 
@@ -8,11 +9,16 @@ public class ImageStorageService
 {
     private readonly StorageConfiguration _config;
     private readonly ILogger _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public ImageStorageService(StorageConfiguration config, ILogger<ImageStorageService> logger)
+    public ImageStorageService(
+        StorageConfiguration config, 
+        ILogger<ImageStorageService> logger,
+        IHttpContextAccessor httpContextAccessor)
     {
         _config = config;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<string?> SaveImageAsync(IFormFile file, int userId, string fileExtension)
@@ -131,9 +137,15 @@ public class ImageStorageService
         if (string.IsNullOrWhiteSpace(storageUrl))
             return string.Empty;
 
-        // If using local storage, return as-is (relative path)
+        // If using local storage, prepend base URL
         if (_config.StorageProvider.ToLowerInvariant() == "local")
         {
+            var baseUrl = GetBaseUrl();
+            if (!string.IsNullOrWhiteSpace(baseUrl))
+            {
+                return $"{baseUrl.TrimEnd('/')}/{storageUrl}";
+            }
+            // Fallback: return as-is if no base URL available
             return storageUrl;
         }
 
@@ -152,6 +164,31 @@ public class ImageStorageService
         }
 
         return storageUrl;
+    }
+
+    private string? GetBaseUrl()
+    {
+        // Try to get base URL from current HTTP context (automatic detection)
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext != null)
+        {
+            var request = httpContext.Request;
+            var scheme = request.Scheme;
+            var host = request.Host.Value;
+            var pathBase = request.PathBase.Value?.TrimEnd('/') ?? "";
+            
+            // Construct base URL from current request
+            var baseUrl = $"{scheme}://{host}{pathBase}";
+            return baseUrl;
+        }
+
+        // Fallback to configured base URL from environment/config
+        if (!string.IsNullOrWhiteSpace(_config.BaseUrl))
+        {
+            return _config.BaseUrl;
+        }
+
+        return null;
     }
 }
 

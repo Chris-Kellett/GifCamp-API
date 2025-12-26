@@ -8,6 +8,11 @@ Create a `.env` file in the project root (same directory as `GifCampAPI.sln`) wi
 # Default: "local" (in development)
 STORAGE_PROVIDER=local
 
+# Base URL for local storage (optional - will auto-detect from request if not set)
+# Used to construct full URLs for images stored locally
+# Example: http://localhost:5255 or https://yourdomain.com
+BASE_URL=
+
 # DigitalOcean Spaces Configuration (only needed if STORAGE_PROVIDER=digitalocean)
 # Get these from your DigitalOcean Spaces control panel
 DO_SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com

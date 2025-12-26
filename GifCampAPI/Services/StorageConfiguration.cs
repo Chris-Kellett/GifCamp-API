@@ -4,6 +4,9 @@ public class StorageConfiguration
 {
     public string StorageProvider { get; set; } = "local"; // "local" or "digitalocean"
     
+    // Base URL for local storage (fallback if not auto-detected)
+    public string? BaseUrl { get; set; }
+    
     // DigitalOcean Spaces configuration (S3-compatible)
     public string? DigitalOceanSpacesEndpoint { get; set; }
     public string? DigitalOceanSpacesAccessKey { get; set; }
